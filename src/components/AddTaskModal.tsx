@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Dimensions, Animated, BackHandler } from 'react-native';
+import { StyleSheet, View, Dimensions, Animated, BackHandler, TouchableWithoutFeedback } from 'react-native';
 import { Portal, Text, Button, TextInput, Switch, useTheme } from 'react-native-paper';
 import { PanGestureHandler, State, PanGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
 import Slider from '@react-native-community/slider';
@@ -29,6 +29,34 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ visible, onDismiss }
   const slideAnim = useRef(new Animated.Value(height)).current;
   const translateY = useRef(new Animated.Value(0)).current;
 
+  // Reset form when modal is opened
+  useEffect(() => {
+    if (visible) {
+      // No need to reset the form here, just handle animation
+      setIsAnimatingOut(false);
+      translateY.setValue(0);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11
+      }).start();
+    }
+  }, [visible]);
+
+  // Handle back button press
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (visible) {
+        handleDismiss();
+        return true;
+      }
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
+
   const handleDismiss = useCallback(() => {
     setIsAnimatingOut(true);
     Animated.spring(slideAnim, {
@@ -41,19 +69,6 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ visible, onDismiss }
       onDismiss();
     });
   }, [onDismiss]);
-
-  useEffect(() => {
-    if (visible) {
-      setIsAnimatingOut(false);
-      translateY.setValue(0);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 11
-      }).start();
-    }
-  }, [visible]);
 
   const handleGestureEvent = Animated.event(
     [{ nativeEvent: { translationY: translateY } }],
@@ -75,6 +90,21 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ visible, onDismiss }
     }
   };
 
+  // Improved slider handling
+  const handleStartPriorityChange = useCallback((value: number) => {
+    setStartPriority(value);
+    // Ensure end priority is never less than start priority
+    if (hasEndPriority && value > endPriority) {
+      setEndPriority(value);
+    }
+  }, [hasEndPriority, endPriority]);
+
+  const handleEscalationDaysChange = useCallback((text: string) => {
+    // Only allow positive numbers
+    const numericValue = text.replace(/[^0-9]/g, '');
+    setEscalationDays(numericValue);
+  }, []);
+
   const handleSubmit = () => {
     if (!title.trim()) return;
 
@@ -83,19 +113,23 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ visible, onDismiss }
       title: title.trim(),
       startPriority,
       endPriority: hasEndPriority ? endPriority : null,
-      escalationDays: hasEndPriority ? parseInt(escalationDays, 10) : null,
+      escalationDays: hasEndPriority ? parseInt(escalationDays, 10) || 1 : null,
       createdAt: new Date().toISOString(),
       completed: false,
       completedAt: null,
     }));
 
     // Reset form and close modal
+    resetForm();
+    handleDismiss();
+  };
+
+  const resetForm = () => {
     setTitle('');
     setStartPriority(50);
     setHasEndPriority(false);
     setEndPriority(80);
     setEscalationDays('14');
-    handleDismiss();
   };
 
   const modalBackgroundColor = theme.dark 
@@ -106,24 +140,20 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ visible, onDismiss }
 
   return (
     <Portal>
-      <Animated.View
-        style={[
-          styles.backdrop,
-          {
-            opacity: slideAnim.interpolate({
-              inputRange: [0, height],
-              outputRange: [1, 0],
-            }),
-          },
-        ]}
-        pointerEvents={visible ? 'auto' : 'none'}
-      >
-        <View 
-          style={styles.backdropTouchable} 
-          onStartShouldSetResponder={() => true}
-          onResponderRelease={handleDismiss}
+      <TouchableWithoutFeedback onPress={handleDismiss}>
+        <Animated.View
+          style={[
+            styles.backdrop,
+            {
+              opacity: slideAnim.interpolate({
+                inputRange: [0, height],
+                outputRange: [1, 0],
+              }),
+            },
+          ]}
+          pointerEvents={visible ? 'auto' : 'none'}
         />
-      </Animated.View>
+      </TouchableWithoutFeedback>
       <PanGestureHandler
         onGestureEvent={handleGestureEvent}
         onHandlerStateChange={handleStateChange}
@@ -141,89 +171,89 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ visible, onDismiss }
             },
           ]}
         >
-          <View 
-            style={[styles.modal, { backgroundColor: modalBackgroundColor }]}
-            onStartShouldSetResponder={() => true}
-            onResponderTerminationRequest={() => false}
-          >
-            <View style={styles.handle} />
-            <Text
-              variant="headlineSmall"
-              style={[styles.title, { color: theme.colors.onSurface }]}
+          <TouchableWithoutFeedback>
+            <View 
+              style={[styles.modal, { backgroundColor: modalBackgroundColor }]}
             >
-              Add New Task
-            </Text>
-            
-            <TextInput
-              label="Task Title"
-              value={title}
-              onChangeText={setTitle}
-              style={styles.input}
-              mode="outlined"
-            />
-
-            <Text style={[styles.label, { color: theme.colors.onSurface }]}>
-              Starting Priority: {startPriority}
-            </Text>
-            <Slider
-              value={startPriority}
-              onValueChange={setStartPriority}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              style={styles.slider}
-              minimumTrackTintColor={theme.colors.primary}
-              thumbTintColor={theme.colors.primary}
-            />
-
-            <View style={styles.switchContainer}>
-              <Text style={{ color: theme.colors.onSurface }}>
-                Enable Priority Escalation
-              </Text>
-              <Switch
-                value={hasEndPriority}
-                onValueChange={setHasEndPriority}
-              />
-            </View>
-
-            {hasEndPriority && (
-              <>
-                <Text style={[styles.label, { color: theme.colors.onSurface }]}>
-                  End Priority: {endPriority}
-                </Text>
-                <Slider
-                  value={endPriority}
-                  onValueChange={setEndPriority}
-                  minimumValue={startPriority}
-                  maximumValue={100}
-                  step={1}
-                  style={styles.slider}
-                  minimumTrackTintColor={theme.colors.primary}
-                  thumbTintColor={theme.colors.primary}
-                />
-
-                <TextInput
-                  label="Days until end priority"
-                  value={escalationDays}
-                  onChangeText={setEscalationDays}
-                  keyboardType="numeric"
-                  style={styles.input}
-                  mode="outlined"
-                />
-              </>
-            )}
-
-            <View style={styles.actions}>
-              <Button onPress={handleDismiss}>Cancel</Button>
-              <Button
-                mode="contained"
-                onPress={handleSubmit}
-                disabled={!title.trim()}
+              <View style={styles.handle} />
+              <Text
+                variant="headlineSmall"
+                style={[styles.title, { color: theme.colors.onSurface }]}
               >
-                Add Task
-              </Button>
+                Add New Task
+              </Text>
+              
+              <TextInput
+                label="Task Title"
+                value={title}
+                onChangeText={setTitle}
+                style={styles.input}
+                mode="outlined"
+              />
+
+              <Text style={[styles.label, { color: theme.colors.onSurface }]}>
+                Starting Priority: {startPriority}
+              </Text>
+              <Slider
+                value={startPriority}
+                onValueChange={handleStartPriorityChange}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                style={styles.slider}
+                minimumTrackTintColor={theme.colors.primary}
+                thumbTintColor={theme.colors.primary}
+              />
+
+              <View style={styles.switchContainer}>
+                <Text style={{ color: theme.colors.onSurface }}>
+                  Enable Priority Escalation
+                </Text>
+                <Switch
+                  value={hasEndPriority}
+                  onValueChange={setHasEndPriority}
+                />
+              </View>
+
+              {hasEndPriority && (
+                <>
+                  <Text style={[styles.label, { color: theme.colors.onSurface }]}>
+                    End Priority: {endPriority}
+                  </Text>
+                  <Slider
+                    value={endPriority}
+                    onValueChange={setEndPriority}
+                    minimumValue={startPriority}
+                    maximumValue={100}
+                    step={1}
+                    style={styles.slider}
+                    minimumTrackTintColor={theme.colors.primary}
+                    thumbTintColor={theme.colors.primary}
+                  />
+
+                  <TextInput
+                    label="Days until end priority"
+                    value={escalationDays}
+                    onChangeText={handleEscalationDaysChange}
+                    keyboardType="numeric"
+                    style={styles.input}
+                    mode="outlined"
+                  />
+                </>
+              )}
+
+              <View style={styles.actions}>
+                <Button onPress={handleDismiss}>Cancel</Button>
+                <Button
+                  mode="contained"
+                  onPress={handleSubmit}
+                  disabled={!title.trim()}
+                >
+                  Add Task
+                </Button>
+              </View>
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </Animated.View>
       </PanGestureHandler>
     </Portal>
@@ -234,9 +264,6 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  backdropTouchable: {
-    flex: 1,
   },
   modalContainer: {
     position: 'absolute',
@@ -270,6 +297,7 @@ const styles = StyleSheet.create({
   },
   slider: {
     marginBottom: 16,
+    zIndex: 1, // Ensure slider is above other elements
   },
   switchContainer: {
     flexDirection: 'row',
@@ -283,4 +311,4 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
-}); 
+});
