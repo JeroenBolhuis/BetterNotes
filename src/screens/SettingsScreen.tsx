@@ -15,24 +15,21 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <List.Section>
-        <List.Subheader>Theme</List.Subheader>
+        <List.Subheader style={{ color: theme.colors.onBackground }}>Theme</List.Subheader>
         <RadioButton.Group onValueChange={handleThemeChange} value={themeMode}>
           <List.Item
             title="Light"
+            titleStyle={{ color: theme.colors.onBackground }}
             left={props => <RadioButton {...props} value="light" />}
             onPress={() => handleThemeChange('light')}
           />
           <List.Item
             title="Dark"
+            titleStyle={{ color: theme.colors.onBackground }}
             left={props => <RadioButton {...props} value="dark" />}
             onPress={() => handleThemeChange('dark')}
-          />
-          <List.Item
-            title="System"
-            left={props => <RadioButton {...props} value="auto" />}
-            onPress={() => handleThemeChange('auto')}
           />
         </RadioButton.Group>
       </List.Section>

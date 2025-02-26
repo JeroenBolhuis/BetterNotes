@@ -33,16 +33,25 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete }) => {
   }, [currentPriority]);
 
   return (
-    <Card style={styles.card} mode="outlined">
+    <Card 
+      style={[styles.card, { backgroundColor: theme.colors.surface }]} 
+      mode="outlined"
+    >
       <View style={[styles.priorityBar, { backgroundColor: priorityColor }]} />
       <Card.Content>
         <View style={styles.header}>
-          <Text variant="titleMedium" style={styles.title}>
+          <Text 
+            variant="titleMedium" 
+            style={[styles.title, { color: theme.colors.onSurface }]}
+          >
             {task.title}
           </Text>
         </View>
         {task.endPriority && task.escalationDays && (
-          <Text variant="bodySmall" style={styles.escalation}>
+          <Text 
+            variant="bodySmall" 
+            style={[styles.escalation, { color: theme.colors.onSurfaceVariant }]}
+          >
             Escalating over {task.escalationDays} days
           </Text>
         )}
@@ -52,6 +61,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete }) => {
           mode="contained"
           onPress={() => onComplete(task.id)}
           disabled={task.completed}
+          style={task.completed ? { opacity: 0.6 } : undefined}
         >
           {task.completed ? 'Completed' : 'Complete'}
         </Button>
