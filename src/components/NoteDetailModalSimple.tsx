@@ -312,6 +312,111 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
   };
 
   /**
+   * Apply blockquote formatting to the current line
+   */
+  const handleBlockquote = () => {
+    if (!textInputRef.current) return;
+    
+    // Ensure input remains focused
+    textInputRef.current.focus();
+    
+    const curText = content;
+    const lineStart = findLineStart(curText, selection.start);
+    const currentLine = getCurrentLine(curText, selection.start);
+    
+    // Check if the line already starts with blockquote
+    const prefix = '> ';
+    const isBlockquote = currentLine.startsWith(prefix);
+    
+    let newText;
+    let newCursorPosition;
+    
+    if (isBlockquote) {
+      // Remove the blockquote
+      newText = curText.substring(0, lineStart) + 
+                currentLine.substring(prefix.length) + 
+                curText.substring(lineStart + currentLine.length);
+      newCursorPosition = selection.start - prefix.length;
+    } else {
+      // Add blockquote
+      newText = curText.substring(0, lineStart) + 
+                prefix + currentLine + 
+                curText.substring(lineStart + currentLine.length);
+      newCursorPosition = selection.start + prefix.length;
+    }
+    
+    // Update content state
+    setContent(newText);
+    setIsEdited(true);
+    
+    // Force refresh the TextInput with new content
+    refreshTextInput(newCursorPosition);
+  };
+
+  /**
+   * Apply code block formatting (triple backticks)
+   */
+  const handleCodeBlock = () => {
+    if (!textInputRef.current) return;
+    
+    // Ensure input remains focused
+    textInputRef.current.focus();
+    
+    const curText = content;
+    const selStart = selection.start;
+    const selEnd = selection.end;
+    
+    // Check if there's selected text
+    if (selStart === selEnd) {
+      // No selection, insert empty code block with newlines
+      const newText = curText.substring(0, selStart) + 
+                     '```\n\n```' + 
+                     curText.substring(selEnd);
+      
+      setContent(newText);
+      setIsEdited(true);
+      refreshTextInput(selStart + 4); // Position cursor after first set of backticks and newline
+      return;
+    }
+    
+    // Get selected text
+    const selectedText = curText.substring(selStart, selEnd);
+    
+    // Check if already wrapped in code block
+    const textBefore = curText.substring(0, selStart);
+    const textAfter = curText.substring(selEnd);
+    const hasBackticksBeforeNewline = textBefore.lastIndexOf('```') > textBefore.lastIndexOf('\n');
+    const hasBackticksAfterNewline = textAfter.indexOf('```') < textAfter.indexOf('\n') || textAfter.indexOf('\n') === -1;
+    
+    let newText;
+    let newCursorPosition;
+    
+    if (hasBackticksBeforeNewline && hasBackticksAfterNewline) {
+      // Remove code block marks
+      const startPos = textBefore.lastIndexOf('```');
+      const endPos = textAfter.indexOf('```') + selEnd + 3;
+      
+      newText = curText.substring(0, startPos) + 
+                selectedText + 
+                curText.substring(endPos);
+      newCursorPosition = startPos;
+    } else {
+      // Add code block marks
+      newText = curText.substring(0, selStart) + 
+                '```\n' + selectedText + '\n```' + 
+                curText.substring(selEnd);
+      newCursorPosition = selEnd + 8; // +8 for the backticks and newlines
+    }
+    
+    // Update content state
+    setContent(newText);
+    setIsEdited(true);
+    
+    // Force refresh the TextInput with new content
+    refreshTextInput(newCursorPosition);
+  };
+
+  /**
    * Force refresh the TextInput and set cursor position
    */
   const refreshTextInput = (cursorPosition: number) => {
@@ -371,6 +476,38 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
     },
     paragraph: {
       color: theme.dark ? theme.colors.onSurface : undefined,
+    },
+    blockquote: {
+      backgroundColor: theme.dark ? theme.colors.elevation.level2 : '#f0f0f0',
+      borderLeftColor: theme.colors.primary,
+      borderLeftWidth: 4,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginVertical: 8,
+    },
+    code_inline: {
+      backgroundColor: theme.dark ? theme.colors.elevation.level3 : '#f5f5f5',
+      color: theme.dark ? theme.colors.onSurface : undefined,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+      borderRadius: 4,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    code_block: {
+      backgroundColor: theme.dark ? theme.colors.elevation.level3 : '#f5f5f5',
+      color: theme.dark ? theme.colors.onSurface : undefined,
+      padding: 12,
+      borderRadius: 4,
+      marginVertical: 8,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    fence: {
+      backgroundColor: theme.dark ? theme.colors.elevation.level3 : '#f5f5f5',
+      color: theme.dark ? theme.colors.onSurface : undefined,
+      padding: 12,
+      borderRadius: 4,
+      marginVertical: 8,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
   };
 
@@ -452,6 +589,16 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
               <ToolbarButton 
                 icon="format-list-numbered" 
                 onPress={() => handleList('numbered')} 
+                color={theme.colors.onSurface}
+              />
+              <ToolbarButton 
+                icon="format-quote-close" 
+                onPress={handleBlockquote} 
+                color={theme.colors.onSurface}
+              />
+              <ToolbarButton 
+                icon="code-braces-box" 
+                onPress={handleCodeBlock} 
                 color={theme.colors.onSurface}
               />
             </Surface>
@@ -565,18 +712,19 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 8,
     borderRadius: 8,
     margin: 8,
-    justifyContent: 'space-around',
+    justifyContent: 'space-evenly',
     alignItems: 'center',
   },
   toolbarButton: {
-    width: 48,
-    height: 48,
+    width: 42,
+    height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 24,
+    borderRadius: 21,
+    margin: 4,
   },
   contentContainer: {
     flex: 1,
