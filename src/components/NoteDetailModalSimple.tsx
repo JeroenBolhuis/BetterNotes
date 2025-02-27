@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Dimensions, Animated, BackHandler, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Dimensions, Animated, BackHandler, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, StatusBar, SafeAreaView } from 'react-native';
 import { Portal, Text, Button, TextInput, useTheme, IconButton, Divider } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
 import { updateNote, deleteNote, Note } from '../store/noteSlice';
@@ -12,6 +12,8 @@ interface NoteDetailModalSimpleProps {
 }
 
 const { height, width } = Dimensions.get('window');
+const STATUS_BAR_HEIGHT = StatusBar.currentHeight || (Platform.OS === 'ios' ? 44 : 0);
+const HEADER_PADDING = Platform.OS === 'ios' ? 44 : 16;
 
 export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({ visible, note, onDismiss }) => {
   const theme = useTheme();
@@ -338,89 +340,104 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({ vi
           },
         ]}
       >
-        <View style={styles.header}>
-          <IconButton
-            icon="arrow-left"
-            size={24}
-            onPress={handleDismiss}
-          />
-          <View style={styles.titleContainer}>
-            {isEditMode ? (
-              <TextInput
-                value={title}
-                onChangeText={setTitle}
-                style={styles.titleInput}
-                mode="flat"
-                placeholder="Note Title"
-                underlineColor="transparent"
-                activeUnderlineColor="transparent"
-              />
-            ) : (
-              <Text style={styles.titleText}>{title}</Text>
-            )}
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.statusBarPlaceholder} />
+          <View style={styles.header}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={handleDismiss}
+            />
+            <View style={styles.titleContainer}>
+              {isEditMode ? (
+                <TextInput
+                  value={title}
+                  onChangeText={setTitle}
+                  style={styles.titleInput}
+                  mode="flat"
+                  placeholder="Note Title"
+                  underlineColor="transparent"
+                  activeUnderlineColor="transparent"
+                  // Fix for input lag
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  blurOnSubmit={false}
+                />
+              ) : (
+                <Text style={styles.titleText}>{title}</Text>
+              )}
+            </View>
+            <IconButton
+              icon={isEditMode ? "content-save" : "pencil"}
+              size={24}
+              onPress={toggleEditMode}
+            />
+            <IconButton
+              icon="delete"
+              size={24}
+              onPress={handleDelete}
+            />
           </View>
-          <IconButton
-            icon={isEditMode ? "content-save" : "pencil"}
-            size={24}
-            onPress={toggleEditMode}
-          />
-          <IconButton
-            icon="delete"
-            size={24}
-            onPress={handleDelete}
-          />
-        </View>
-        
-        <Divider />
-        
-        {/* Formatting Toolbar - only visible in edit mode */}
-        {isEditMode && (
-          <View style={[styles.toolbar, { backgroundColor: theme.colors.surfaceVariant }]}>
-            <TouchableOpacity style={styles.toolbarButton} onPress={insertHeader}>
-              <MaterialCommunityIcons name="format-header-1" size={22} color={theme.colors.onSurface} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={insertSubheader}>
-              <MaterialCommunityIcons name="format-header-2" size={22} color={theme.colors.onSurface} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={insertBold}>
-              <MaterialCommunityIcons name="format-bold" size={22} color={theme.colors.onSurface} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={insertItalic}>
-              <MaterialCommunityIcons name="format-italic" size={22} color={theme.colors.onSurface} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={insertBulletList}>
-              <MaterialCommunityIcons name="format-list-bulleted" size={22} color={theme.colors.onSurface} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={insertNumberedList}>
-              <MaterialCommunityIcons name="format-list-numbered" size={22} color={theme.colors.onSurface} />
-            </TouchableOpacity>
-          </View>
-        )}
-        
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.contentContainer}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
-        >
-          <ScrollView style={styles.scrollView}>
-            {isEditMode ? (
-              <TextInput
-                ref={textInputRef}
-                value={content}
-                onChangeText={setContent}
-                onSelectionChange={handleSelectionChange}
-                style={styles.contentInput}
-                mode="flat"
-                placeholder="Start typing your note here..."
-                multiline
-                underlineColor="transparent"
-                activeUnderlineColor="transparent"
-              />
-            ) : (
-              renderFormattedContent(content)
-            )}
-          </ScrollView>
-        </KeyboardAvoidingView>
+          
+          <Divider />
+          
+          {/* Formatting Toolbar - only visible in edit mode */}
+          {isEditMode && (
+            <View style={[styles.toolbar, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <TouchableOpacity style={styles.toolbarButton} onPress={insertHeader}>
+                <MaterialCommunityIcons name="format-header-1" size={22} color={theme.colors.onSurface} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton} onPress={insertSubheader}>
+                <MaterialCommunityIcons name="format-header-2" size={22} color={theme.colors.onSurface} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton} onPress={insertBold}>
+                <MaterialCommunityIcons name="format-bold" size={22} color={theme.colors.onSurface} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton} onPress={insertItalic}>
+                <MaterialCommunityIcons name="format-italic" size={22} color={theme.colors.onSurface} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton} onPress={insertBulletList}>
+                <MaterialCommunityIcons name="format-list-bulleted" size={22} color={theme.colors.onSurface} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton} onPress={insertNumberedList}>
+                <MaterialCommunityIcons name="format-list-numbered" size={22} color={theme.colors.onSurface} />
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.contentContainer}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+          >
+            <ScrollView style={styles.scrollView}>
+              {isEditMode ? (
+                <TextInput
+                  ref={textInputRef}
+                  value={content}
+                  onChangeText={setContent}
+                  onSelectionChange={handleSelectionChange}
+                  style={styles.contentInput}
+                  mode="flat"
+                  placeholder="Start typing your note here..."
+                  multiline
+                  underlineColor="transparent"
+                  activeUnderlineColor="transparent"
+                  // Fix for input lag
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  blurOnSubmit={false}
+                  textAlignVertical="top"
+                  scrollEnabled={false}
+                />
+              ) : (
+                renderFormattedContent(content)
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Animated.View>
     </Portal>
   );
@@ -431,10 +448,17 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     flex: 1,
   },
+  safeArea: {
+    flex: 1,
+  },
+  statusBarPlaceholder: {
+    height: STATUS_BAR_HEIGHT,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
+    paddingTop: HEADER_PADDING,
   },
   titleContainer: {
     flex: 1,
@@ -474,6 +498,8 @@ const styles = StyleSheet.create({
   contentInput: {
     backgroundColor: 'transparent',
     minHeight: height * 0.6,
+    fontSize: 16,
+    lineHeight: 24,
   },
   // Formatted content styles
   header1: {
