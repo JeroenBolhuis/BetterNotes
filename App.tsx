@@ -1,21 +1,25 @@
 import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { Provider as ReduxProvider } from 'react-redux';
-import { Provider as PaperProvider, MD3LightTheme, MD3DarkTheme, adaptNavigationTheme } from 'react-native-paper';
+import { Provider as PaperProvider, MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 import { NavigationContainer, DefaultTheme as NavigationDefaultTheme, DarkTheme as NavigationDarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { store } from './src/store';
 import { TaskListScreen } from './src/screens/TaskListScreen';
+import { NotesScreen } from './src/screens/NotesScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { loadTasks } from './src/store/taskSlice';
+import { loadNotes } from './src/store/noteSlice';
 import { loadTasks as loadTasksFromStorage } from './src/utils/storage';
+import { loadNotes as loadNotesFromStorage } from './src/utils/storage';
 import { useSelector } from 'react-redux';
 import { RootState } from './src/store';
 
 type TabParamList = {
   Tasks: undefined;
+  Notes: undefined;
   Settings: undefined;
 };
 
@@ -42,22 +46,40 @@ const CustomDarkTheme = {
   },
 };
 
-// Adapt navigation theme
-const { LightTheme: AdaptedLightTheme, DarkTheme: AdaptedDarkTheme } = adaptNavigationTheme({
-  reactNavigationLight: NavigationDefaultTheme,
-  reactNavigationDark: NavigationDarkTheme,
-});
+// Navigation themes
+const CustomNavigationLightTheme = {
+  ...NavigationDefaultTheme,
+  colors: {
+    ...NavigationDefaultTheme.colors,
+    background: CustomLightTheme.colors.background,
+    card: CustomLightTheme.colors.surface,
+    text: CustomLightTheme.colors.onSurface,
+  },
+};
+
+const CustomNavigationDarkTheme = {
+  ...NavigationDarkTheme,
+  colors: {
+    ...NavigationDarkTheme.colors,
+    background: CustomDarkTheme.colors.background,
+    card: CustomDarkTheme.colors.surface,
+    text: CustomDarkTheme.colors.onSurface,
+  },
+};
 
 function AppContent() {
   const themeMode = useSelector((state: RootState) => state.settings.themeMode);
   
   const theme = themeMode === 'dark' ? CustomDarkTheme : CustomLightTheme;
-  const navigationTheme = themeMode === 'dark' ? AdaptedDarkTheme : AdaptedLightTheme;
+  const navigationTheme = themeMode === 'dark' ? CustomNavigationDarkTheme : CustomNavigationLightTheme;
 
   useEffect(() => {
     const initializeApp = async () => {
       const tasks = await loadTasksFromStorage();
       store.dispatch(loadTasks(tasks));
+      
+      const notes = await loadNotesFromStorage();
+      store.dispatch(loadNotes(notes));
     };
 
     initializeApp();
@@ -86,6 +108,19 @@ function AppContent() {
               tabBarIcon: ({ color, size }: { color: string; size: number }) => (
                 <MaterialCommunityIcons
                   name="format-list-checks"
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Notes"
+            component={NotesScreen}
+            options={{
+              tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons
+                  name="note-text"
                   size={size}
                   color={color}
                 />

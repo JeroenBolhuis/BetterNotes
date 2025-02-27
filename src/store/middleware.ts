@@ -1,5 +1,6 @@
 import { Middleware, AnyAction } from '@reduxjs/toolkit';
 import { saveTasks } from '../utils/storage';
+import { saveNotes } from '../utils/storage';
 import { RootState } from './index';
 
 export const persistMiddleware: Middleware = store => next => action => {
@@ -9,12 +10,25 @@ export const persistMiddleware: Middleware = store => next => action => {
     typeof action === 'object' &&
     action !== null &&
     'type' in action &&
-    typeof action.type === 'string' &&
-    action.type.startsWith('tasks/') &&
-    action.type !== 'tasks/loadTasks'
+    typeof action.type === 'string'
   ) {
     const state = store.getState() as RootState;
-    saveTasks(state.tasks.tasks);
+    
+    // Persist tasks
+    if (
+      action.type.startsWith('tasks/') &&
+      action.type !== 'tasks/loadTasks'
+    ) {
+      saveTasks(state.tasks.tasks);
+    }
+    
+    // Persist notes
+    if (
+      action.type.startsWith('notes/') &&
+      action.type !== 'notes/loadNotes'
+    ) {
+      saveNotes(state.notes.notes);
+    }
   }
   
   return result;
