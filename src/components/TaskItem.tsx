@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, Text, IconButton, useTheme } from 'react-native-paper';
+import { Card, Text, IconButton, useTheme, Dialog, Button, Portal } from 'react-native-paper';
 import { Task } from '../store/taskSlice';
 import { calculateCurrentPriority } from '../utils/priorityCalculator';
 import { differenceInDays } from 'date-fns';
@@ -9,10 +9,17 @@ interface TaskItemProps {
   task: Task;
   onComplete: (id: string) => void;
   isCompleted?: boolean;
+  onReopen?: (id: string) => void;
 }
 
-export const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete, isCompleted = false }) => {
+export const TaskItem: React.FC<TaskItemProps> = ({ 
+  task, 
+  onComplete, 
+  isCompleted = false,
+  onReopen 
+}) => {
   const theme = useTheme();
+  const [reopenDialogVisible, setReopenDialogVisible] = useState(false);
   const currentPriority = useMemo(() => calculateCurrentPriority(task), [task]);
 
   // Calculate escalation progress
@@ -61,93 +68,133 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete, isComplete
     return `Completed on ${completedDate.toLocaleDateString()}`;
   }, [task.completedAt]);
 
+  // Handle reopen confirmation
+  const showReopenDialog = () => {
+    setReopenDialogVisible(true);
+  };
+
+  const hideReopenDialog = () => {
+    setReopenDialogVisible(false);
+  };
+
+  const handleReopen = () => {
+    if (onReopen) {
+      onReopen(task.id);
+    }
+    hideReopenDialog();
+  };
+
   return (
-    <Card 
-      style={[
-        styles.card, 
-        { 
-          backgroundColor: theme.colors.surface,
-          opacity: isCompleted ? 0.7 : 1,
-        }
-      ]} 
-      mode="elevated"
-    >
-      <View style={styles.cardContent}>
-        {/* Left color indicator */}
-        <View 
-          style={[
-            styles.priorityIndicator, 
-            { 
-              backgroundColor: isCompleted ? theme.colors.surfaceVariant : priorityColor 
-            }
-          ]} 
-        />
-        
-        {/* Task content */}
-        <View style={styles.taskContent}>
-          <Text 
-            variant="titleMedium" 
+    <>
+      <Card 
+        style={[
+          styles.card, 
+          { 
+            backgroundColor: theme.colors.surface,
+            opacity: isCompleted ? 0.7 : 1,
+          }
+        ]} 
+        mode="elevated"
+      >
+        <View style={styles.cardContent}>
+          {/* Left color indicator */}
+          <View 
             style={[
-              styles.title, 
+              styles.priorityIndicator, 
               { 
-                color: theme.colors.onSurface,
-                textDecorationLine: isCompleted ? 'line-through' : 'none',
+                backgroundColor: isCompleted ? theme.colors.surfaceVariant : priorityColor 
               }
-            ]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {task.title}
-          </Text>
+            ]} 
+          />
           
-          {isCompleted && completionDateDisplay ? (
+          {/* Task content */}
+          <View style={styles.taskContent}>
             <Text 
-              variant="bodySmall" 
-              style={[styles.completionDate, { color: theme.colors.onSurfaceVariant }]}
+              variant="titleMedium" 
+              style={[
+                styles.title, 
+                { 
+                  color: theme.colors.onSurface,
+                  textDecorationLine: isCompleted ? 'line-through' : 'none',
+                }
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
-              {completionDateDisplay}
+              {task.title}
             </Text>
-          ) : (
-            task.endPriority && task.escalationDays && escalationProgress !== null && (
-              <View style={styles.escalationContainer}>
-                <Text 
-                  variant="bodySmall" 
-                  style={[styles.escalation, { color: theme.colors.onSurfaceVariant }]}
-                  numberOfLines={1}
-                >
-                  {escalationProgress === 1 
-                    ? 'Fully escalated'
-                    : `Escalating: ${Math.round(escalationProgress * 100)}%`
-                  }
-                </Text>
-                <View style={styles.progressBarContainer}>
-                  <View 
-                    style={[
-                      styles.progressBar, 
-                      { 
-                        backgroundColor: priorityColor,
-                        width: `${escalationProgress * 100}%` 
-                      }
-                    ]} 
-                  />
+            
+            {isCompleted && completionDateDisplay ? (
+              <Text 
+                variant="bodySmall" 
+                style={[styles.completionDate, { color: theme.colors.onSurfaceVariant }]}
+              >
+                {completionDateDisplay}
+              </Text>
+            ) : (
+              task.endPriority && task.escalationDays && escalationProgress !== null && (
+                <View style={styles.escalationContainer}>
+                  <Text 
+                    variant="bodySmall" 
+                    style={[styles.escalation, { color: theme.colors.onSurfaceVariant }]}
+                    numberOfLines={1}
+                  >
+                    {escalationProgress === 1 
+                      ? 'Fully escalated'
+                      : `Escalating: ${Math.round(escalationProgress * 100)}%`
+                    }
+                  </Text>
+                  <View style={styles.progressBarContainer}>
+                    <View 
+                      style={[
+                        styles.progressBar, 
+                        { 
+                          backgroundColor: priorityColor,
+                          width: `${escalationProgress * 100}%` 
+                        }
+                      ]} 
+                    />
+                  </View>
                 </View>
-              </View>
-            )
+              )
+            )}
+          </View>
+          
+          {/* Action buttons */}
+          {!isCompleted ? (
+            <IconButton
+              icon="check-circle-outline"
+              iconColor={priorityColor}
+              size={24}
+              onPress={() => onComplete(task.id)}
+              style={styles.actionButton}
+            />
+          ) : (
+            <IconButton
+              icon="refresh"
+              iconColor={theme.colors.primary}
+              size={24}
+              onPress={showReopenDialog}
+              style={styles.actionButton}
+            />
           )}
         </View>
-        
-        {/* Complete button - only show for non-completed tasks */}
-        {!isCompleted && (
-          <IconButton
-            icon="check-circle-outline"
-            iconColor={priorityColor}
-            size={24}
-            onPress={() => onComplete(task.id)}
-            style={styles.completeButton}
-          />
-        )}
-      </View>
-    </Card>
+      </Card>
+
+      {/* Reopen Confirmation Dialog */}
+      <Portal>
+        <Dialog visible={reopenDialogVisible} onDismiss={hideReopenDialog}>
+          <Dialog.Title>Reopen Task</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">Are you sure you want to reopen this task?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={hideReopenDialog}>Cancel</Button>
+            <Button onPress={handleReopen}>Reopen</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </>
   );
 };
 
@@ -195,7 +242,7 @@ const styles = StyleSheet.create({
   progressBar: {
     height: '100%',
   },
-  completeButton: {
+  actionButton: {
     margin: 0,
   },
   completionDate: {

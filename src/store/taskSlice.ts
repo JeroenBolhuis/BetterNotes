@@ -33,11 +33,18 @@ export const taskSlice = createSlice({
         task.completedAt = new Date().toISOString();
       }
     },
+    reopenTask: (state, action: PayloadAction<string>) => {
+      const task = state.tasks.find(t => t.id === action.payload);
+      if (task) {
+        task.completed = false;
+        task.completedAt = null;
+      }
+    },
     loadTasks: (state, action: PayloadAction<Task[]>) => {
       state.tasks = action.payload;
     },
   },
 });
 
-export const { addTask, completeTask, loadTasks } = taskSlice.actions;
+export const { addTask, completeTask, reopenTask, loadTasks } = taskSlice.actions;
 export default taskSlice.reducer; 

@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, Dimensions, AppState, AppStateStatus } from
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme, FAB, Text, ActivityIndicator, Divider } from 'react-native-paper';
 import { RootState } from '../store';
-import { Task, completeTask } from '../store/taskSlice';
+import { Task, completeTask, reopenTask } from '../store/taskSlice';
 import { TaskItem } from '../components/TaskItem';
 import { AddTaskModal } from '../components/AddTaskModal';
 import { calculateCurrentPriority, clearPriorityCache } from '../utils/priorityCalculator';
@@ -31,6 +31,11 @@ export const TaskListScreen: React.FC = () => {
   // Handler for task completion
   const handleComplete = useCallback((id: string) => {
     dispatch(completeTask(id));
+  }, [dispatch]);
+  
+  // Handler for task reopening
+  const handleReopen = useCallback((id: string) => {
+    dispatch(reopenTask(id));
   }, [dispatch]);
 
   // Setup periodic priority updates
@@ -105,12 +110,13 @@ export const TaskListScreen: React.FC = () => {
         )}
         <TaskItem 
           task={item} 
-          onComplete={handleComplete} 
+          onComplete={handleComplete}
+          onReopen={handleReopen}
           isCompleted={item.completed}
         />
       </>
     );
-  }, [handleComplete, activeTasks.length, completedTasks.length, theme.colors.onSurfaceVariant]);
+  }, [handleComplete, handleReopen, activeTasks.length, completedTasks.length, theme.colors.onSurfaceVariant]);
 
   const keyExtractor = useCallback((item: Task) => item.id, []);
 
