@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { store } from './src/store';
 import { TaskListScreen } from './src/screens/TaskListScreen';
 import { NotesScreen } from './src/screens/NotesScreen';
+import { CalculatorScreen } from './src/screens/CalculatorScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { loadTasks } from './src/store/taskSlice';
 import { loadNotes } from './src/store/noteSlice';
@@ -31,6 +32,7 @@ export const NavigationStateContext = React.createContext<{
 export type RootTabParamList = {
   Tasks: undefined;
   Notes: undefined;
+  Calculator: undefined;
   Settings: undefined;
 };
 
@@ -138,12 +140,14 @@ function AppContent() {
               headerTintColor: theme.colors.onSurface,
               // Use icon based on route name
               tabBarIcon: ({ color, size }) => {
-                let iconName: "format-list-checks" | "note-text" | "cog" = "format-list-checks";
+                let iconName: "format-list-checks" | "note-text" | "calculator" | "cog" = "format-list-checks";
 
                 if (route.name === 'Tasks') {
                   iconName = "format-list-checks";
                 } else if (route.name === 'Notes') {
                   iconName = "note-text";
+                } else if (route.name === 'Calculator') {
+                  iconName = "calculator";
                 } else if (route.name === 'Settings') {
                   iconName = "cog";
                 }
@@ -187,6 +191,16 @@ function AppContent() {
               }}
               listeners={({ navigation }) => ({
                 focus: () => setCurrentTab('Notes'),
+              })}
+            />
+            <Tab.Screen 
+              name="Calculator" 
+              component={CalculatorScreen}
+              options={{
+                title: "Calculator",
+              }}
+              listeners={({ navigation }) => ({
+                focus: () => setCurrentTab('Calculator'),
               })}
             />
             <Tab.Screen 

@@ -14,8 +14,8 @@ export const SettingsScreen: React.FC = () => {
 
   // Use the custom swipe navigation hook
   const swipeGesture = useSwipeNavigation({ 
-    leftDestination: 'Tasks',
-    rightDestination: 'Notes'
+    leftDestination: 'Calculator',
+    rightDestination: 'Tasks'
   });
 
   const handleThemeChange = (value: string) => {

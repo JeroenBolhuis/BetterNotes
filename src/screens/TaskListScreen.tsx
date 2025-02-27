@@ -24,8 +24,8 @@ export const TaskListScreen: React.FC = () => {
 
   // Use the custom swipe navigation hook
   const swipeGesture = useSwipeNavigation({ 
-    leftDestination: 'Notes',
-    rightDestination: 'Settings'
+    leftDestination: 'Settings',
+    rightDestination: 'Notes'
   });
 
   // Handler for task completion
