@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, StatusBar } from 'react-native';
 import { Provider as ReduxProvider } from 'react-redux';
 import { Provider as PaperProvider, MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 import { NavigationContainer, DefaultTheme as NavigationDefaultTheme, DarkTheme as NavigationDarkTheme, NavigationState, CommonActions } from '@react-navigation/native';
@@ -116,6 +116,10 @@ function AppContent() {
   return (
     <NavigationStateContext.Provider value={{ currentTab, setCurrentTab }}>
       <PaperProvider theme={theme}>
+        <StatusBar 
+          backgroundColor={themeMode === 'dark' ? '#121212' : '#ffffff'} 
+          barStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
+        />
         <NavigationContainer 
           theme={navigationTheme}
           ref={navigationRef}
