@@ -8,6 +8,8 @@ import { TaskItem } from '../components/TaskItem';
 import { AddTaskModal } from '../components/AddTaskModal';
 import { calculateCurrentPriority, clearPriorityCache } from '../utils/priorityCalculator';
 import { differenceInDays } from 'date-fns';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 
 export const TaskListScreen: React.FC = () => {
   const dispatch = useDispatch();
@@ -19,6 +21,12 @@ export const TaskListScreen: React.FC = () => {
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const appStateRef = useRef(AppState.currentState);
   const [forceUpdate, setForceUpdate] = useState(0);
+
+  // Use the custom swipe navigation hook
+  const swipeGesture = useSwipeNavigation({ 
+    leftDestination: 'Notes',
+    rightDestination: 'Settings'
+  });
 
   // Handler for task completion
   const handleComplete = useCallback((id: string) => {
@@ -120,39 +128,41 @@ export const TaskListScreen: React.FC = () => {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <FlatList
-        data={displayTasks}
-        renderItem={renderTask}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={[
-          styles.list,
-          displayTasks.length === 0 && styles.emptyList
-        ]}
-        ListEmptyComponent={renderEmptyList}
-      />
-      
-      <FAB
-        icon="plus"
-        style={[
-          styles.fab,
-          {
-            backgroundColor: hasHighPriorityTasks 
-              ? theme.colors.error 
-              : theme.colors.primary,
-            elevation: 8,
-          }
-        ]}
-        onPress={() => setIsAddModalVisible(true)}
-        color={theme.colors.onPrimary}
-        size="large"
-      />
+    <GestureDetector gesture={swipeGesture}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <FlatList
+          data={displayTasks}
+          renderItem={renderTask}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={[
+            styles.list,
+            displayTasks.length === 0 && styles.emptyList
+          ]}
+          ListEmptyComponent={renderEmptyList}
+        />
+        
+        <FAB
+          icon="plus"
+          style={[
+            styles.fab,
+            {
+              backgroundColor: hasHighPriorityTasks 
+                ? theme.colors.error 
+                : theme.colors.primary,
+              elevation: 8,
+            }
+          ]}
+          onPress={() => setIsAddModalVisible(true)}
+          color={theme.colors.onPrimary}
+          size="large"
+        />
 
-      <AddTaskModal
-        visible={isAddModalVisible}
-        onDismiss={() => setIsAddModalVisible(false)}
-      />
-    </View>
+        <AddTaskModal
+          visible={isAddModalVisible}
+          onDismiss={() => setIsAddModalVisible(false)}
+        />
+      </View>
+    </GestureDetector>
   );
 };
 

@@ -6,6 +6,8 @@ import { RootState } from '../store';
 import { Note } from '../store/noteSlice';
 import { AddNoteModal } from '../components/AddNoteModal';
 import { NoteDetailModalSimple } from '../components/NoteDetailModalSimple';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 
 export const NotesScreen: React.FC = () => {
   const dispatch = useDispatch();
@@ -19,6 +21,12 @@ export const NotesScreen: React.FC = () => {
   const sortedNotes = [...notes].sort((a, b) => 
     new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
+  
+  // Use the custom swipe navigation hook
+  const swipeGesture = useSwipeNavigation({ 
+    leftDestination: 'Settings',
+    rightDestination: 'Tasks'
+  });
   
   const handleNotePress = useCallback((note: Note) => {
     setSelectedNote(note);
@@ -74,45 +82,47 @@ export const NotesScreen: React.FC = () => {
   ), [theme.colors.onSurfaceVariant]);
   
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <FlatList
-        data={sortedNotes}
-        renderItem={renderNote}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={[
-          styles.list,
-          sortedNotes.length === 0 && styles.emptyList
-        ]}
-        ListEmptyComponent={renderEmptyList}
-      />
-      
-      <FAB
-        icon="plus"
-        style={[
-          styles.fab,
-          {
-            backgroundColor: theme.colors.primary,
-            elevation: 8,
-          }
-        ]}
-        onPress={() => setIsAddModalVisible(true)}
-        color={theme.colors.onPrimary}
-        size="large"
-      />
-      
-      <AddNoteModal
-        visible={isAddModalVisible}
-        onDismiss={() => setIsAddModalVisible(false)}
-      />
-      
-      {selectedNote && (
-        <NoteDetailModalSimple
-          visible={!!selectedNote}
-          note={selectedNote}
-          onDismiss={() => setSelectedNote(null)}
+    <GestureDetector gesture={swipeGesture}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <FlatList
+          data={sortedNotes}
+          renderItem={renderNote}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={[
+            styles.list,
+            sortedNotes.length === 0 && styles.emptyList
+          ]}
+          ListEmptyComponent={renderEmptyList}
         />
-      )}
-    </View>
+        
+        <FAB
+          icon="plus"
+          style={[
+            styles.fab,
+            {
+              backgroundColor: theme.colors.primary,
+              elevation: 8,
+            }
+          ]}
+          onPress={() => setIsAddModalVisible(true)}
+          color={theme.colors.onPrimary}
+          size="large"
+        />
+        
+        <AddNoteModal
+          visible={isAddModalVisible}
+          onDismiss={() => setIsAddModalVisible(false)}
+        />
+        
+        {selectedNote && (
+          <NoteDetailModalSimple
+            visible={!!selectedNote}
+            note={selectedNote}
+            onDismiss={() => setSelectedNote(null)}
+          />
+        )}
+      </View>
+    </GestureDetector>
   );
 };
 
