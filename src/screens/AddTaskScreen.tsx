@@ -40,10 +40,15 @@ export const AddTaskScreen: React.FC = () => {
     <View style={styles.container}>
       <TextInput
         label="Task Title"
-        value={title}
+        defaultValue={title}
         onChangeText={setTitle}
         style={styles.input}
         mode="outlined"
+        key="screen-task-title"
+        autoCapitalize="sentences"
+        autoCorrect={true}
+        spellCheck={true}
+        cursorColor="#6200ee"
       />
 
       <Text style={styles.label}>Starting Priority: {startPriority}</Text>
@@ -75,11 +80,16 @@ export const AddTaskScreen: React.FC = () => {
 
           <TextInput
             label="Days until end priority"
-            value={escalationDays}
+            defaultValue={escalationDays}
             onChangeText={setEscalationDays}
             keyboardType="numeric"
             style={styles.input}
             mode="outlined"
+            key="screen-escalation-days"
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            cursorColor="#6200ee"
           />
         </>
       )}

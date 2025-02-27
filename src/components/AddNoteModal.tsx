@@ -145,12 +145,17 @@ export const AddNoteModal: React.FC<AddNoteModalProps> = ({ visible, onDismiss }
             <View style={styles.content}>
               <TextInput
                 label="Title"
-                value={title}
+                defaultValue={title}
                 onChangeText={setTitle}
                 mode="outlined"
                 style={styles.input}
                 placeholder="Enter note title"
                 autoFocus
+                key="add-note-title-input"
+                autoCapitalize="sentences"
+                autoCorrect={true}
+                spellCheck={true}
+                cursorColor={theme.colors.primary}
               />
               
               <Text style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>

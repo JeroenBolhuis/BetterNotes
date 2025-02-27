@@ -351,18 +351,23 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({ vi
             <View style={styles.titleContainer}>
               {isEditMode ? (
                 <TextInput
-                  value={title}
-                  onChangeText={setTitle}
+                  defaultValue={title}
+                  onChangeText={(text) => {
+                    setTitle(text);
+                    setIsEdited(true);
+                  }}
                   style={styles.titleInput}
                   mode="flat"
                   placeholder="Note Title"
                   underlineColor="transparent"
                   activeUnderlineColor="transparent"
-                  // Fix for input lag
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  spellCheck={false}
+                  key={`title-input-${note.id}`}
+                  // Enable auto features
+                  autoCapitalize="sentences"
+                  autoCorrect={true}
+                  spellCheck={true}
                   blurOnSubmit={false}
+                  cursorColor={theme.colors.primary}
                 />
               ) : (
                 <Text style={styles.titleText}>{title}</Text>
@@ -415,8 +420,11 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({ vi
               {isEditMode ? (
                 <TextInput
                   ref={textInputRef}
-                  value={content}
-                  onChangeText={setContent}
+                  defaultValue={content}
+                  onChangeText={(text) => {
+                    setContent(text);
+                    setIsEdited(true);
+                  }}
                   onSelectionChange={handleSelectionChange}
                   style={styles.contentInput}
                   mode="flat"
@@ -424,13 +432,15 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({ vi
                   multiline
                   underlineColor="transparent"
                   activeUnderlineColor="transparent"
-                  // Fix for input lag
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  spellCheck={false}
+                  key={`content-input-${note.id}`}
+                  // Enable auto features
+                  autoCapitalize="sentences"
+                  autoCorrect={true}
+                  spellCheck={true}
                   blurOnSubmit={false}
                   textAlignVertical="top"
                   scrollEnabled={false}
+                  cursorColor={theme.colors.primary}
                 />
               ) : (
                 renderFormattedContent(content)

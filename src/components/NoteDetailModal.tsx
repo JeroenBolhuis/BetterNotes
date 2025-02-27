@@ -157,13 +157,18 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({ visible, note,
           />
           <View style={styles.titleContainer}>
             <TextInput
-              value={title}
+              defaultValue={title}
               onChangeText={setTitle}
               style={styles.titleInput}
               mode="flat"
               placeholder="Note Title"
               underlineColor="transparent"
               activeUnderlineColor="transparent"
+              key={`title-input-${note.id}`}
+              autoCapitalize="sentences"
+              autoCorrect={true}
+              spellCheck={true}
+              cursorColor={theme.colors.primary}
             />
           </View>
           <IconButton

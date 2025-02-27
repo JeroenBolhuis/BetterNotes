@@ -185,10 +185,15 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ visible, onDismiss }
               
               <TextInput
                 label="Task Title"
-                value={title}
+                defaultValue={title}
                 onChangeText={setTitle}
                 style={styles.input}
                 mode="outlined"
+                key="task-title-input"
+                autoCapitalize="sentences"
+                autoCorrect={true}
+                spellCheck={true}
+                cursorColor={theme.colors.primary}
               />
 
               <Text style={[styles.label, { color: theme.colors.onSurface }]}>
@@ -233,11 +238,16 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ visible, onDismiss }
 
                   <TextInput
                     label="Days until end priority"
-                    value={escalationDays}
+                    defaultValue={escalationDays}
                     onChangeText={handleEscalationDaysChange}
                     keyboardType="numeric"
                     style={styles.input}
                     mode="outlined"
+                    key="escalation-days-input"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    cursorColor={theme.colors.primary}
                   />
                 </>
               )}
