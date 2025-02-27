@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { Gesture, Directions } from 'react-native-gesture-handler';
+import { Gesture } from 'react-native-gesture-handler';
 import { useContext } from 'react';
 import { NavigationStateContext } from '../../App';
 
@@ -19,39 +19,21 @@ export const useSwipeNavigation = ({
   const navigation = useNavigation();
   const { setCurrentTab } = useContext(NavigationStateContext);
 
-  // Create swipe left gesture if leftDestination is provided
-  const swipeLeftGesture = leftDestination 
-    ? Gesture.Fling()
-        .direction(Directions.LEFT)
-        .onEnd(() => {
-          // Update context first to avoid visual lag
-          if (leftDestination) {
-            setCurrentTab(leftDestination);
-          }
-          // Then actually navigate
-          navigation.navigate(leftDestination as never);
-        })
-    : undefined;
+  // Create a pan gesture that handles both left and right swipes
+  const panGesture = Gesture.Pan()
+    .runOnJS(true)
+    .onEnd((event) => {
+      // Detect horizontal direction of the swipe
+      if (event.translationX < -50 && leftDestination) {
+        // Swiped left - go to left destination
+        setCurrentTab(leftDestination);
+        navigation.navigate(leftDestination as never);
+      } else if (event.translationX > 50 && rightDestination) {
+        // Swiped right - go to right destination
+        setCurrentTab(rightDestination);
+        navigation.navigate(rightDestination as never);
+      }
+    });
 
-  // Create swipe right gesture if rightDestination is provided
-  const swipeRightGesture = rightDestination
-    ? Gesture.Fling()
-        .direction(Directions.RIGHT)
-        .onEnd(() => {
-          // Update context first to avoid visual lag
-          if (rightDestination) {
-            setCurrentTab(rightDestination);
-          }
-          // Then actually navigate
-          navigation.navigate(rightDestination as never);
-        })
-    : undefined;
-
-  // Combine gestures if both are defined
-  if (swipeLeftGesture && swipeRightGesture) {
-    return Gesture.Simultaneous(swipeLeftGesture, swipeRightGesture);
-  }
-  
-  // Return individual gesture or undefined if neither is provided
-  return swipeLeftGesture || swipeRightGesture || Gesture.Fling();
+  return panGesture;
 }; 
