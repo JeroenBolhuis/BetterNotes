@@ -10,7 +10,8 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   NativeSyntheticEvent,
-  TextInputSelectionChangeEventData
+  TextInputSelectionChangeEventData,
+  Keyboard
 } from 'react-native';
 import { 
   Portal, 
@@ -77,19 +78,19 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
 
   // Initialize the modal state
   const initializeModal = useCallback(() => {
-    setTitle(note.title || '');
-    setContent(note.content || '');
-    setIsEdited(false);
-    setIsAnimatingOut(false);
-    setIsEditMode(false);
+        setTitle(note.title || '');
+        setContent(note.content || '');
+        setIsEdited(false);
+        setIsAnimatingOut(false);
+        setIsEditMode(false);
     setTextInputKey(Date.now()); // Reset key to force TextInput refresh
-    
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 11
-    }).start();
+        
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11
+        }).start();
   }, [note, slideAnim]);
 
   // Handle back button press
@@ -115,41 +116,41 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
    */
   const handleDismiss = () => {
     if (isEdited) {
-      saveChanges();
-    }
-    
-    setIsAnimatingOut(true);
-    Animated.spring(slideAnim, {
-      toValue: width,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 11
-    }).start(() => {
-      setIsAnimatingOut(false);
-      onDismiss();
-    });
+        saveChanges();
+      }
+      
+      setIsAnimatingOut(true);
+      Animated.spring(slideAnim, {
+        toValue: width,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11
+      }).start(() => {
+        setIsAnimatingOut(false);
+        onDismiss();
+      });
   };
 
   /**
    * Save changes to the note
    */
   const saveChanges = useCallback(() => {
-    if (!title.trim()) return;
+      if (!title.trim()) return;
 
-    dispatch(updateNote({
-      ...note,
-      title: title.trim(),
-      content: content,
-      updatedAt: new Date().toISOString(),
-    }));
+      dispatch(updateNote({
+        ...note,
+        title: title.trim(),
+        content: content,
+        updatedAt: new Date().toISOString(),
+      }));
   }, [title, content, note, dispatch]);
 
   /**
    * Delete the current note
    */
   const handleDelete = () => {
-    dispatch(deleteNote(note.id));
-    handleDismiss();
+      dispatch(deleteNote(note.id));
+      handleDismiss();
   };
 
   /**
@@ -164,6 +165,13 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
     // Force TextInput refresh when entering edit mode
     if (!isEditMode) {
       setTextInputKey(Date.now());
+      
+      // Focus the input after a short delay to ensure keyboard appears
+      setTimeout(() => {
+        if (textInputRef.current) {
+          textInputRef.current.focus();
+        }
+      }, 100);
     }
   };
 
@@ -206,7 +214,7 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
   const handleHeading = (level: 1 | 2) => {
     if (!textInputRef.current) return;
     
-    // Focus the input
+    // Ensure input remains focused
     textInputRef.current.focus();
     
     const curText = content;
@@ -256,7 +264,7 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
   const handleList = (type: 'bullet' | 'numbered') => {
     if (!textInputRef.current) return;
     
-    // Focus the input
+    // Ensure input remains focused
     textInputRef.current.focus();
     
     const curText = content;
@@ -309,9 +317,10 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
   const refreshTextInput = (cursorPosition: number) => {
     setTextInputKey(Date.now());
     
-    // Update cursor position after refresh
+    // Update cursor position after refresh and ensure keyboard stays open
     setTimeout(() => {
       if (textInputRef.current) {
+        textInputRef.current.focus();
         textInputRef.current.setNativeProps({
           selection: {
             start: cursorPosition,
@@ -422,7 +431,7 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
           
           <Divider />
           
-          {/* Formatting Toolbar */}
+          {/* Formatting Toolbar - Kept at the top */}
           {isEditMode && (
             <Surface style={styles.toolbar} elevation={2}>
               <ToolbarButton 
@@ -449,34 +458,39 @@ export const NoteDetailModalSimple: React.FC<NoteDetailModalSimpleProps> = ({
           )}
           
           {/* Content Area */}
-          <View style={styles.contentContainer}>
-            {isEditMode ? (
+          <View 
+            style={styles.contentContainer}
+            pointerEvents="box-none"
+          >
+              {isEditMode ? (
               // Edit Mode - Using defaultValue with key prop for refresh
-              <TextInput
-                key={textInputKey}
-                ref={textInputRef}
-                defaultValue={content}
-                onChangeText={(text) => {
-                  setContent(text);
-                  setIsEdited(true);
-                }}
-                onSelectionChange={handleSelectionChange}
-                style={[
-                  styles.contentInput,
-                  { color: theme.colors.onSurface }
-                ]}
-                multiline
-                placeholder="Start typing your note here..."
-                placeholderTextColor={theme.colors.onSurfaceDisabled}
-                mode="flat"
-                underlineColor="transparent"
-                activeUnderlineColor="transparent"
-                autoCapitalize="none"
-                autoCorrect={false}
-                spellCheck={false}
-                cursorColor={theme.colors.primary}
-              />
-            ) : (
+                <TextInput
+                  key={textInputKey}
+                  ref={textInputRef}
+                  defaultValue={content}
+                  onChangeText={(text) => {
+                    setContent(text);
+                    setIsEdited(true);
+                  }}
+                  onSelectionChange={handleSelectionChange}
+                  style={[
+                    styles.contentInput,
+                    { color: theme.colors.onSurface }
+                  ]}
+                  multiline
+                  placeholder="Start typing your note here..."
+                  placeholderTextColor={theme.colors.onSurfaceDisabled}
+                  mode="flat"
+                  underlineColor="transparent"
+                  activeUnderlineColor="transparent"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  cursorColor={theme.colors.primary}
+                  blurOnSubmit={false}
+                  keyboardType="default"
+                />
+              ) : (
               // View Mode - Renders markdown
               <ScrollView style={styles.scrollView}>
                 <Markdown style={dynamicMarkdownStyles}>
@@ -503,7 +517,14 @@ interface ToolbarButtonProps {
 const ToolbarButton: React.FC<ToolbarButtonProps> = ({ icon, onPress, color }) => (
   <TouchableOpacity 
     style={styles.toolbarButton} 
-    onPress={onPress}
+    onPress={(e) => {
+      // Prevent default behavior that might dismiss keyboard
+      e.preventDefault?.();
+      // Use setTimeout to ensure the keyboard doesn't dismiss
+      setTimeout(() => {
+        onPress();
+      }, 10);
+    }}
     activeOpacity={0.6}
   >
     <MaterialCommunityIcons 
