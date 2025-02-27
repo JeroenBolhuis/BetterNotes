@@ -43,7 +43,7 @@ const CalcButton: React.FC<{
         styles.button, 
         { 
           backgroundColor: getBackgroundColor(),
-          width: size === 'double' ? 160 : 80,
+          width: size === 'double' ? 120 : 60,
         }
       ]}
     >
@@ -72,8 +72,8 @@ export const CalculatorScreen: React.FC = () => {
   
   // Use the custom swipe navigation hook
   const swipeGesture = useSwipeNavigation({ 
-    leftDestination: 'Notes',
-    rightDestination: 'Settings'
+    leftDestination: 'Settings',
+    rightDestination: 'Notes'
   });
   
   // Input digit handler
@@ -96,19 +96,6 @@ export const CalculatorScreen: React.FC = () => {
     
     if (display.indexOf('.') === -1) {
       setDisplay(display + '.');
-    }
-  };
-  
-  // Backspace handler
-  const handleBackspace = () => {
-    if (waitingForSecondOperand) {
-      return;
-    }
-    
-    if (display.length > 1) {
-      setDisplay(display.slice(0, -1));
-    } else {
-      setDisplay('0');
     }
   };
   
@@ -165,6 +152,15 @@ export const CalculatorScreen: React.FC = () => {
     setFirstOperand(null);
     setOperator(null);
     setWaitingForSecondOperand(false);
+  };
+  
+  // Backspace handler
+  const handleBackspace = () => {
+    if (display.length === 1 || (display.length === 2 && display.startsWith('-'))) {
+      setDisplay('0');
+    } else {
+      setDisplay(display.slice(0, -1));
+    }
   };
   
   // Toggle sign handler
@@ -245,8 +241,8 @@ export const CalculatorScreen: React.FC = () => {
               label={
                 <MaterialCommunityIcons 
                   name="backspace-outline" 
-                  size={28} 
-                  color={theme.colors.onPrimary}
+                  size={24} 
+                  color={theme.colors.onPrimary} 
                 />
               } 
               onPress={handleBackspace} 
@@ -266,11 +262,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   displayContainer: {
-    padding: 24,
+    padding: 20,
     alignItems: 'flex-end',
   },
   display: {
-    fontSize: 48,
+    fontSize: 42,
     fontWeight: 'bold',
     padding: 16,
     borderRadius: 8,
@@ -278,26 +274,27 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   operatorIndicator: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginTop: 8,
+    marginTop: 6,
     paddingRight: 16,
   },
   buttonContainer: {
-    padding: 8,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 20,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 14,
   },
   button: {
-    width: 80,
-    height: 80,
+    width: 60,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 40,
-    margin: 4,
+    borderRadius: 30,
+    margin: 5,
     ...Platform.select({
       ios: {
         shadowColor: 'rgba(0,0,0,0.2)',
@@ -311,7 +308,7 @@ const styles = StyleSheet.create({
     }),
   },
   buttonText: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
   },
 }); 

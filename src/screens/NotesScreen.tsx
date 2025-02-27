@@ -24,8 +24,8 @@ export const NotesScreen: React.FC = () => {
   
   // Use the custom swipe navigation hook
   const swipeGesture = useSwipeNavigation({ 
-    leftDestination: 'Tasks',
-    rightDestination: 'Calculator'
+    leftDestination: 'Calculator',
+    rightDestination: 'Tasks'
   });
   
   const handleNotePress = useCallback((note: Note) => {
