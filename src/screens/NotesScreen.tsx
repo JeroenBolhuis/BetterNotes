@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, Dimensions, Platform } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme, FAB, Text, Card, TouchableRipple } from 'react-native-paper';
 import { RootState } from '../store';
 import { Note } from '../store/noteSlice';
 import { AddNoteModal } from '../components/AddNoteModal';
-import { NoteDetailModal } from '../components/NoteDetailModal';
+import { NoteDetailModalSimple } from '../components/NoteDetailModalSimple';
 
 export const NotesScreen: React.FC = () => {
   const dispatch = useDispatch();
@@ -24,6 +24,27 @@ export const NotesScreen: React.FC = () => {
     setSelectedNote(note);
   }, []);
   
+  // Function to get a plain text preview from markdown content
+  const getPlainTextPreview = (markdownContent: string) => {
+    if (!markdownContent) return '';
+    
+    try {
+      return markdownContent
+        .replace(/^#\s+/gm, '') // Remove headers
+        .replace(/^##\s+/gm, '') // Remove subheaders
+        .replace(/^-\s+/gm, '') // Remove bullet points
+        .replace(/^\d+\.\s+/gm, '') // Remove numbered lists
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markers
+        .replace(/_(.*?)_/g, '$1') // Remove italic markers
+        .replace(/\n/g, ' ') // Replace newlines with spaces
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .trim(); // Trim leading/trailing spaces
+    } catch (error) {
+      console.error('Error getting plain text preview:', error);
+      return '';
+    }
+  };
+  
   const renderNote = useCallback(({ item }: { item: Note }) => (
     <TouchableRipple onPress={() => handleNotePress(item)}>
       <Card style={styles.noteCard} mode="elevated">
@@ -32,7 +53,7 @@ export const NotesScreen: React.FC = () => {
             {item.title}
           </Text>
           <Text variant="bodySmall" style={styles.notePreview} numberOfLines={2} ellipsizeMode="tail">
-            {item.content.replace(/\n/g, ' ')}
+            {getPlainTextPreview(item.content) || "No content"}
           </Text>
           <Text variant="labelSmall" style={styles.noteDate}>
             {new Date(item.updatedAt).toLocaleDateString()}
@@ -85,7 +106,7 @@ export const NotesScreen: React.FC = () => {
       />
       
       {selectedNote && (
-        <NoteDetailModal
+        <NoteDetailModalSimple
           visible={!!selectedNote}
           note={selectedNote}
           onDismiss={() => setSelectedNote(null)}
@@ -101,7 +122,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 8,
-    paddingBottom: 100, // Increased padding for larger FAB
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100, // Increased padding for larger FAB and iOS safe area
   },
   emptyList: {
     flex: 1,
@@ -115,7 +136,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 16,
+    bottom: Platform.OS === 'ios' ? 32 : 16, // Adjust for iOS safe area
     alignSelf: 'center',
     borderRadius: 35,
     width: 70,

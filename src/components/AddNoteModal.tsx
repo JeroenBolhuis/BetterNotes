@@ -1,44 +1,49 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Dimensions, Animated, BackHandler, TouchableWithoutFeedback } from 'react-native';
-import { Portal, Text, Button, TextInput, useTheme } from 'react-native-paper';
-import { PanGestureHandler, State, PanGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { StyleSheet, View, Dimensions, Animated, BackHandler, KeyboardAvoidingView, Platform } from 'react-native';
+import { Portal, Text, Button, TextInput, useTheme, IconButton } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
 import { addNote } from '../store/noteSlice';
-import { nanoid } from '@reduxjs/toolkit';
+
+// Simple ID generator that doesn't rely on crypto
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
 
 interface AddNoteModalProps {
   visible: boolean;
   onDismiss: () => void;
 }
 
-const { height } = Dimensions.get('window');
-const DRAG_THRESHOLD = 50;
+const { height, width } = Dimensions.get('window');
 
 export const AddNoteModal: React.FC<AddNoteModalProps> = ({ visible, onDismiss }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const [title, setTitle] = useState('');
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
-
+  
   // Animation values
   const slideAnim = useRef(new Animated.Value(height)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
-
+  
   // Reset form when modal is opened
   useEffect(() => {
     if (visible) {
-      // No need to reset the form here, just handle animation
-      setIsAnimatingOut(false);
-      translateY.setValue(0);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 11
-      }).start();
+      try {
+        setTitle('');
+        setIsAnimatingOut(false);
+        
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11
+        }).start();
+      } catch (error) {
+        console.error('Error initializing add note form:', error);
+      }
     }
   }, [visible]);
-
+  
   // Handle back button press
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -48,178 +53,175 @@ export const AddNoteModal: React.FC<AddNoteModalProps> = ({ visible, onDismiss }
       }
       return false;
     });
-
+    
     return () => backHandler.remove();
   }, [visible]);
-
+  
   const handleDismiss = useCallback(() => {
-    setIsAnimatingOut(true);
-    Animated.spring(slideAnim, {
-      toValue: height,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 11
-    }).start(() => {
-      setIsAnimatingOut(false);
+    try {
+      setIsAnimatingOut(true);
+      Animated.spring(slideAnim, {
+        toValue: height,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11
+      }).start(() => {
+        setIsAnimatingOut(false);
+        onDismiss();
+      });
+    } catch (error) {
+      console.error('Error dismissing modal:', error);
       onDismiss();
-    });
+    }
   }, [onDismiss]);
-
-  const handleGestureEvent = Animated.event(
-    [{ nativeEvent: { translationY: translateY } }],
-    { useNativeDriver: true }
-  );
-
-  const handleStateChange = ({ nativeEvent }: PanGestureHandlerStateChangeEvent) => {
-    if (nativeEvent.state === State.END) {
-      if (nativeEvent.translationY > DRAG_THRESHOLD) {
-        handleDismiss();
-      } else {
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 65,
-          friction: 11
-        }).start();
-      }
+  
+  const handleSubmit = () => {
+    try {
+      if (!title.trim()) return;
+      
+      dispatch(addNote({
+        id: generateId(),
+        title: title.trim(),
+        content: '', // Start with empty content
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+      
+      handleDismiss();
+    } catch (error) {
+      console.error('Error adding note:', error);
     }
   };
-
-  const handleSubmit = () => {
-    if (!title.trim()) return;
-
-    const now = new Date().toISOString();
-    
-    dispatch(addNote({
-      id: nanoid(),
-      title: title.trim(),
-      content: '',
-      createdAt: now,
-      updatedAt: now,
-    }));
-
-    // Reset form and close modal
-    resetForm();
-    handleDismiss();
-  };
-
-  const resetForm = () => {
-    setTitle('');
-  };
-
+  
   const modalBackgroundColor = theme.dark 
     ? theme.colors.elevation.level3
     : theme.colors.surface;
-
+  
   if (!visible && !isAnimatingOut) return null;
-
+  
   return (
     <Portal>
-      <TouchableWithoutFeedback onPress={handleDismiss}>
-        <Animated.View
-          style={[
-            styles.backdrop,
-            {
-              opacity: slideAnim.interpolate({
-                inputRange: [0, height],
-                outputRange: [1, 0],
-              }),
-            },
-          ]}
-          pointerEvents={visible ? 'auto' : 'none'}
-        />
-      </TouchableWithoutFeedback>
-      <PanGestureHandler
-        onGestureEvent={handleGestureEvent}
-        onHandlerStateChange={handleStateChange}
+      <Animated.View
+        style={[
+          styles.overlay,
+          {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            opacity: slideAnim.interpolate({
+              inputRange: [0, height],
+              outputRange: [1, 0],
+            }),
+          },
+        ]}
       >
-        <Animated.View
-          style={[
-            styles.modalContainer,
-            {
-              transform: [{
-                translateY: Animated.add(
-                  slideAnim,
-                  translateY
-                ),
-              }],
-            },
-          ]}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardAvoidingView}
         >
-          <TouchableWithoutFeedback>
-            <View 
-              style={[styles.modal, { backgroundColor: modalBackgroundColor }]}
-            >
-              <View style={styles.handle} />
-              <Text
-                variant="headlineSmall"
-                style={[styles.title, { color: theme.colors.onSurface }]}
-              >
-                Create New Note
+          <Animated.View
+            style={[
+              styles.container,
+              {
+                backgroundColor: modalBackgroundColor,
+                transform: [
+                  {
+                    translateY: slideAnim,
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={styles.header}>
+              <IconButton
+                icon="close"
+                size={24}
+                onPress={handleDismiss}
+              />
+              <Text variant="titleLarge" style={styles.headerTitle}>
+                Add Note
               </Text>
-              
+              <View style={{ width: 48 }} />
+            </View>
+            
+            <View style={styles.content}>
               <TextInput
-                label="Note Title"
+                label="Title"
                 value={title}
                 onChangeText={setTitle}
-                style={styles.input}
                 mode="outlined"
+                style={styles.input}
+                placeholder="Enter note title"
+                autoFocus
               />
-
-              <View style={styles.actions}>
-                <Button onPress={handleDismiss}>Cancel</Button>
-                <Button
-                  mode="contained"
-                  onPress={handleSubmit}
-                  disabled={!title.trim()}
-                >
-                  Create
-                </Button>
-              </View>
+              
+              <Text style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>
+                Add a title for your note. You can add content after creating the note.
+              </Text>
             </View>
-          </TouchableWithoutFeedback>
-        </Animated.View>
-      </PanGestureHandler>
+            
+            <View style={styles.actions}>
+              <Button
+                mode="text"
+                onPress={handleDismiss}
+                style={styles.button}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSubmit}
+                style={styles.button}
+                disabled={!title.trim()}
+              >
+                Create
+              </Button>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Animated.View>
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
+  overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  modalContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  keyboardAvoidingView: {
+    width: '100%',
   },
-  modal: {
-    padding: 20,
-    paddingTop: 12,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: height * 0.9,
+  container: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    width: '100%',
   },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: 'rgba(128, 128, 128, 0.5)',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 12,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
   },
-  title: {
-    marginBottom: 20,
+  headerTitle: {
+    fontWeight: 'bold',
+  },
+  content: {
+    padding: 16,
   },
   input: {
+    marginBottom: 8,
+  },
+  hint: {
+    fontSize: 14,
+    marginTop: 8,
     marginBottom: 16,
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
-    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+  button: {
+    marginLeft: 8,
   },
 }); 

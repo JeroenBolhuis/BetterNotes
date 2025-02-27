@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Dimensions, Animated, BackHandler, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Dimensions, Animated, BackHandler, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import { Portal, Text, Button, TextInput, useTheme, IconButton, Divider } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
 import { updateNote, deleteNote, Note } from '../store/noteSlice';
+import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 
 interface NoteDetailModalProps {
   visible: boolean;
@@ -19,6 +20,9 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({ visible, note,
   const [content, setContent] = useState(note.content);
   const [isEdited, setIsEdited] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  
+  // Rich editor reference
+  const richText = useRef<RichEditor>(null);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(width)).current;
@@ -95,54 +99,8 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({ visible, note,
     handleDismiss();
   };
 
-  // Format content with markdown-like features
-  const formatContent = (text: string) => {
-    // Split by lines
-    return text.split('\n').map((line, index) => {
-      // Check for headers (# Header)
-      if (line.startsWith('# ')) {
-        return (
-          <Text key={index} variant="headlineMedium" style={styles.headerText}>
-            {line.substring(2)}
-          </Text>
-        );
-      }
-      // Check for subheaders (## Subheader)
-      else if (line.startsWith('## ')) {
-        return (
-          <Text key={index} variant="titleLarge" style={styles.subheader}>
-            {line.substring(3)}
-          </Text>
-        );
-      }
-      // Check for unordered list items (- Item)
-      else if (line.startsWith('- ')) {
-        return (
-          <View key={index} style={styles.listItem}>
-            <Text style={styles.bullet}>•</Text>
-            <Text style={styles.listItemText}>{line.substring(2)}</Text>
-          </View>
-        );
-      }
-      // Check for ordered list items (1. Item)
-      else if (/^\d+\.\s/.test(line)) {
-        const number = line.match(/^\d+/)?.[0] || '';
-        return (
-          <View key={index} style={styles.listItem}>
-            <Text style={styles.number}>{number}.</Text>
-            <Text style={styles.listItemText}>{line.substring(number.length + 2)}</Text>
-          </View>
-        );
-      }
-      // Regular paragraph
-      else {
-        return (
-          <Text key={index} style={styles.paragraph}>
-            {line}
-          </Text>
-        );
-      }
-    });
+  const handleEditorChange = (html: string) => {
+    setContent(html);
   };
 
   const modalBackgroundColor = theme.dark 
@@ -150,6 +108,35 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({ visible, note,
     : theme.colors.surface;
 
   if (!visible && !isAnimatingOut) return null;
+
+  // Define editor actions to include
+  const editorActions = [
+    actions.setBold,
+    actions.setItalic,
+    actions.setUnderline,
+    actions.heading1,
+    actions.heading2,
+    actions.insertBulletsList,
+    actions.insertOrderedList,
+    actions.alignLeft,
+    actions.alignCenter,
+    actions.alignRight,
+    actions.undo,
+    actions.redo,
+  ];
+
+  // Custom CSS for the editor
+  const editorInitialStyle = {
+    backgroundColor: 'transparent',
+    color: theme.colors.onSurface,
+    placeholderColor: theme.colors.onSurfaceVariant,
+    contentCSSText: `
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, sans-serif;
+      font-size: 16px;
+      padding: 12px;
+      min-height: ${height * 0.6}px;
+    `
+  };
 
   return (
     <Portal>
@@ -191,18 +178,31 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({ visible, note,
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.contentContainer}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
         >
-          <ScrollView style={styles.scrollView}>
-            <TextInput
-              value={content}
-              onChangeText={setContent}
-              style={styles.contentInput}
-              mode="flat"
-              placeholder="Start typing your note here..."
-              multiline
-              underlineColor="transparent"
-              activeUnderlineColor="transparent"
-            />
+          <RichToolbar
+            editor={richText}
+            actions={editorActions}
+            iconTint={theme.colors.onSurface}
+            selectedIconTint={theme.colors.primary}
+            style={[styles.toolbar, { backgroundColor: theme.colors.surfaceVariant }]}
+          />
+          
+          <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+            {visible && (
+              <RichEditor
+                ref={richText}
+                initialContentHTML={content}
+                onChange={handleEditorChange}
+                placeholder="Start typing your note here..."
+                style={styles.richEditor}
+                initialHeight={height * 0.6}
+                useContainer={true}
+                editorStyle={editorInitialStyle}
+                pasteAsPlainText={true}
+                disabled={false}
+              />
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
         
@@ -245,11 +245,14 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    padding: 16,
   },
-  contentInput: {
-    backgroundColor: 'transparent',
-    minHeight: height * 0.7,
+  richEditor: {
+    flex: 1,
+    minHeight: height * 0.6,
+  },
+  toolbar: {
+    borderRadius: 8,
+    margin: 8,
   },
   saveButtonContainer: {
     padding: 16,
@@ -257,35 +260,5 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     borderRadius: 8,
-  },
-  // Formatted content styles
-  headerText: {
-    marginTop: 16,
-    marginBottom: 8,
-    fontWeight: 'bold',
-  },
-  subheader: {
-    marginTop: 12,
-    marginBottom: 6,
-    fontWeight: 'bold',
-  },
-  paragraph: {
-    marginBottom: 8,
-  },
-  listItem: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    paddingLeft: 8,
-  },
-  bullet: {
-    width: 16,
-    marginRight: 8,
-  },
-  number: {
-    width: 24,
-    marginRight: 8,
-  },
-  listItemText: {
-    flex: 1,
   },
 }); 
